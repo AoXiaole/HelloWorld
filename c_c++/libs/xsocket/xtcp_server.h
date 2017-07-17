@@ -28,8 +28,8 @@ class Xtcp_server_threadParam
 {
 public:
 	Xtcp_server *tcp_server;
-	void *arg;
-	Xtcp_server_threadParam(Xtcp_server *_tcp_server,void *_arg):tcp_server(_tcp_server),arg(_arg){}
+	int sockfd;
+	Xtcp_server_threadParam(Xtcp_server *_tcp_server,int _sockfd):tcp_server(_tcp_server),sockfd(_sockfd){}
 	
 };
 
@@ -52,6 +52,9 @@ public:
 		static void* accpetThread(void *arg);
 		static void* newClientThread(void *arg);
 		virtual int newClient(int newSocket);
+
+        int send(int socketfd,void *data,int len);
+        int recv(int socketfd,void *data,int maxLen);
 		
 };
 

@@ -26,7 +26,7 @@ Xtcp_server::Xtcp_server(int listen_port,int listen_num)
 int Xtcp_server::run()
 {
 	running=1;
-	Xtcp_server_threadParam *threadParam_accpet = new Xtcp_server_threadParam(this,NULL);
+	Xtcp_server_threadParam *threadParam_accpet = new Xtcp_server_threadParam(this,0);
 	pthread_create(&pAccpetThread,NULL,accpetThread,(void *)threadParam_accpet);
 	return 1;
 }
@@ -53,9 +53,9 @@ void* Xtcp_server::accpetThread(void *arg)
 	    }  
 	    else
 		{	
-			printf("Received a connection from %s\n",(char*) inet_ntoa(remote_addr.sin_addr));  
+//			printf("Received a connection from %s\n",(char*) inet_ntoa(remote_addr.sin_addr));  
 			
-			Xtcp_server_threadParam *threadParam_newClient = new Xtcp_server_threadParam(threadParam_accpet->tcp_server,(void *)accept_fd);
+			Xtcp_server_threadParam *threadParam_newClient = new Xtcp_server_threadParam(threadParam_accpet->tcp_server,accept_fd);
 			pthread_create(&pNewClientThread,NULL,newClientThread,(void *)threadParam_newClient);
 	   	}
 
@@ -75,8 +75,8 @@ void * Xtcp_server::newClientThread(void *arg)
 	Xtcp_server_threadParam *threadParam_newClient = (Xtcp_server_threadParam *)arg;
 
 //	while(tcp_server_threadParam.tcp_server->running)
-	int newsocket = (int)(threadParam_newClient->arg);
-	printf("newClientThread:have new accpet\n");
+	int newsocket = threadParam_newClient->sockfd;
+//	printf("newClientThread:have new accpet\n");
 	threadParam_newClient->tcp_server->newClient(newsocket);
 
 	 
@@ -100,4 +100,33 @@ int Xtcp_server::newClient(int newSocket)
      delete buffer;
 	 return 0;
 }
+int Xtcp_server::send(int socketfd,void *data,int len)
+{
+    return ::send(socketfd,(char *)data,len,0 );
+}
+
+int Xtcp_server::recv(int socketfd,void *data,int maxLen)
+{
+    int len = 0;
+    int totalLen=0;
+    char temp[1024] = {0};
+    struct timeval timeout={5,0};//5s
+    int ret=setsockopt(socket_fd,SOL_SOCKET,SO_RCVTIMEO,(const char*)&timeout,sizeof(timeout));
+    
+    while(1)
+    {
+        memset(temp,0,sizeof(temp));
+    	if( ( len = read(socketfd,(void *)temp,sizeof(temp))) <= 0 ) 
+    	{  
+               break;  
+        } 
+    	else 
+        {  
+        	memcpy(data+totalLen,temp,len);
+            totalLen +=len;
+        }
+    }
+    return totalLen;
+}
+
 

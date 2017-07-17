@@ -24,11 +24,12 @@ public:
 class Xtcp_client  
 {  
 private:  
-        int socket_fd;  
+      
         char message[4096];  
         struct sockaddr_in server_addr;  
   
 public:  
+    int socket_fd;  
 	
         Xtcp_client(char* server_ip,int server_port);  
 		int send(void *data,int len);
