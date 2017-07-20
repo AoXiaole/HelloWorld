@@ -26,11 +26,17 @@ public:
             int recvLen=0;
             
 			int len=0;
+
+
+     struct timeval timeout={5, 0};//3s
+    int ret=setsockopt(newSocket, SOL_SOCKET,SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
+
+            
 			inet_ntop(host->h_addrtype, host->h_addr, ip_str, sizeof(ip_str));
             cout<<"newSocket :"<<newSocket<<endl;
 			cout<<"[---> wxshglzjk.xyz ip:"<<ip_str<<" <---]"<<endl;
 			Xtcp_client tcp_client(ip_str,80);
-			while(1)
+		while(1)
 			{
 				memset(buff,0,1024*1024);
                 memset(recvbuff,0,1024*1024);
@@ -44,14 +50,14 @@ public:
 			      //  replace_all_distinct(str_buf,string("10.9.0.219"),string(ip_str));
 			        cout<<newSocket<<"++++++++++read client data len = "<<len<<"++++++++++++++\n";
 					len = replaceMem(buff,len,MAXSIZE,"10.9.0.219:8800",strlen("10.9.0.219:8800"),ip_str,strlen(ip_str));
-                    
+                    len = replaceMem(buff,len,MAXSIZE,"10.9.0.219",strlen("10.9.0.219"),ip_str,strlen(ip_str));
 					cout<<newSocket<<"++++changed  data len =  "<<len<<"++buff+++++++\n"<<buff<<endl;
                         
                     
 					len = tcp_client.send((void *)buff,len);
                     if(len > 0)
                     {
-                        while(1)
+                       // while(1)
                         {
                             cout<<newSocket<<"+++++++send to server buff success ++++\n";
                             memset(recvbuff,0,1024*1024);
@@ -67,14 +73,14 @@ public:
                             }
                             else
                             {
-                                break;
+                                ;
                             }
                        }
                     }
                     
 				}
-			}
-			
+          }
+      
 		}
 };
 

@@ -40,8 +40,8 @@ private:
         int socket_fd;  
         sockaddr_in myserver;  
         int running;
-		int listen_port;
-		int listen_num;
+//		int listen_port;
+//		int listen_num;
 		pthread_t pAccpetThread;
 		
 	

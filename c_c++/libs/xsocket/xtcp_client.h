@@ -34,5 +34,6 @@ public:
         Xtcp_client(char* server_ip,int server_port);  
 		int send(void *data,int len);
 		int recv(void *data,int maxLen);
+        ~Xtcp_client(){close(socket_fd);}
 };
 #endif
