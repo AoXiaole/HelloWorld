@@ -7,8 +7,11 @@ fi
 toppath=$(cd $(dirname $0);pwd)
 source ${toppath}/common.ini
 
-g_day=""
+ret=0
+stockcode=$1
 
+g_day=""
+today_ymd=`date +%Y%m%d`
 
 function getdaydata()
 {
@@ -19,12 +22,13 @@ function getdaydata()
 
 	url_value=$(url_request "${url}")
 	if [ $? -ne 0 ];then
-		echo "${url} error"
+		log ERROR "${url} error" ${g_logfile_stock}
 		return 255
 	fi
 	url_value=${url_value##*=}
 	g_day=$(echo ${url_value} | sed 's/\[\([0-9]*\),.*/\1/')
-	if [ $? -ne 0 ];then
+	if [ -z "${g_day}" ] ;then
+        log ERROR "${stockcode} ${g_day} is not today" ${g_logfile_stock}
 		return 255
 	fi
 	local totals=$(echo "${url_value}" | awk -F "|" '{print NF}')
@@ -35,7 +39,7 @@ function getdaydata()
 		url=$(echo "${tmp_url}" | sed "s/\[times\]/$i/")
 		url_value=$(url_request "${url}")
 		if [ $? -ne 0 ];then
-			echo "${url} error"
+			log ERROR "${url} error" ${g_logfile_stock}
 		fi
 		temp_list=($(echo "${url_value##*=}" | grep -o '".*"' | tr '"|' ' '))
 		for ((j=0;j<${#temp_list[*]};j++))
@@ -47,8 +51,6 @@ function getdaydata()
 	return 0
 }
 
-ret=0
-stockcode=$1
 # 7项
 declare -A data_list=()
 
@@ -59,34 +61,14 @@ fi
 
 time_ymd=${g_day}
 table_name="day_${stockcode}_${time_ymd}"
-create_table_cmd="use ${g_mysql_db};create table ${table_name}(no INT primary key,time_hms TIME,price FLOAT,ffs FLOAT,vol INT,money BIGINT,b_s enum('B','S','M'));"
-
 
 table_arrt="(no INT,time_hms TIME,price FLOAT,ffs FLOAT,vol INT,money BIGINT,b_s enum('B','S','M'))"
 
-value=$(check_dataTable ${g_mysql_db} ${table_name})
+value=$(dbstock_create_table ${table_name} "${table_arrt}")
 ret=$?
-case ${ret} in
-	"0")
-	ret=0
-	;;
-	"1")
-	ret=1
-	;;
-	"2")
-	value=$(create_db_table ${g_mysql_db} ${table_name} "${table_arrt}" 1)
-	ret=$?
-	;;
-	"3")
-	value=$(create_db_table ${g_mysql_db} ${table_name} "${table_arrt}" 0)
-	ret=$?
-	;;
-	"*")
-	ret=255
-	;;
-esac 
+
 if [ ${ret} -ne 0 ];then
-	echo "${value}"
+	log ERROR "ret = ${ret} ${value} $LINENO" ${g_logfile_stock}
 	exit 1
 fi
 
@@ -95,7 +77,7 @@ for((j=0;j<${#data_list[*]};j++))
 do
 	temp_list=(${data_list[$j]//// })
 	if [ ${#temp_list[*]} -ne 7 ];then
-		echo "${data_list[$j]} error"
+		log ERROR "${data_list[$j]} error $LINENO" ${g_logfile_stock}
 		continue
 	fi  
 	insert_cmd="${insert_cmd} (${temp_list[0]},'${temp_list[1]}',${temp_list[2]},${temp_list[3]},${temp_list[4]},${temp_list[5]},'${temp_list[6]}'),"
@@ -103,16 +85,15 @@ do
 	if ((j%50==0)) || ((j+1==${#data_list[*]}));then
 		if [ $j -ne 0 ];then
 			insert_cmd="${insert_cmd%,*};"
-			db_value=$(db_insert ${g_mysql_db} ${table_name} "${table_column}" "${insert_cmd}")
+			db_value=$(dbstock_insert ${table_name} "${insert_cmd}")
 			if [ $? -ne 0 ];then
-				echo "${insert_cmd}"
-				echo "${db_value}"
+				log ERROR "${insert_cmd} value=${db_value} $LINENO" ${g_logfile_stock}
 				break
 			fi
 		insert_cmd=""	
 		fi
 	fi	
 done
-
+exit 0
 
 

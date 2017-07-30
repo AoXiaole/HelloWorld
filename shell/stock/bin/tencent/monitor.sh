@@ -5,7 +5,7 @@ source ${toppath}/common.ini
 
 stock_list=$(${toppath}/stocklist.sh)
 if [ $? -ne 0 ];then
-	log ERROR "monitor getlist error" ${toppath}/logs/stock
+	log ERROR "monitor getlist error" ${g_logfile_stock}
 	exit 1
 fi
 
@@ -27,14 +27,15 @@ do
    read -u1000
    {
 	${toppath}/daydate.sh $i
-	echo "$i $?"
+	log DEBUG "$i $?" ${g_logfile_stock}
     echo >&1000
    } &
 
 done
 
 wait
-echo "done!!!!!!!!!!"
+log DEBUG "$0 done!!!!!!!!!! [`date +%Y%m%d`]" ${g_logfile_stock}
+
 
 
 
