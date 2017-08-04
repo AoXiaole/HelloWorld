@@ -5,6 +5,9 @@
 #include <sys/types.h>  
 #include <regex.h> 
 #include <string.h> 
+#include <string>
+#include <regex>
+
 using namespace std;
 
 void writeOnly_file1(char * fileName,string str)
@@ -147,13 +150,13 @@ void readOnly_file(char *fileName)
 
 
 int function () {
-  std::ifstream ifs ("a.cap", std::ifstream::binary);
+   ifstream ifs ("a.cap",  ifstream::binary);
 
   // get pointer to associated buffer object
-  std::filebuf* pbuf = ifs.rdbuf();
+   filebuf* pbuf = ifs.rdbuf();
 
   // get file size using buffer's members
-  std::size_t size = pbuf->pubseekoff (0,ifs.end,ifs.in);
+   size_t size = pbuf->pubseekoff (0,ifs.end,ifs.in);
   pbuf->pubseekpos (0,ifs.in);
 
   // allocate memory to contain file data
@@ -165,7 +168,7 @@ int function () {
   ifs.close();
 
   // write content to stdout
-  std::cout.write (buffer,size);
+   cout.write (buffer,size);
 
   delete[] buffer;
 
@@ -173,11 +176,53 @@ int function () {
 }
 
 
+int cplusRegxMatch()
+{
+    
+      if ( regex_match ("subject",  regex("(sub)(.*)") ))
+         cout << "string literal matched\n";
+    
+      const char cstr[] = "subject";
+       string s ("subject");
+       regex e ("(sub)(.*)");
+    
+      if ( regex_match (s,e))
+         cout << "string object matched\n";
+    
+      if (  regex_match ( s.begin(), s.end(), e ) )
+         cout << "range matched\n";
+    
+       cmatch cm;    // same as  match_results<const char*> cm;
+       regex_match (cstr,cm,e);
+       cout << "string literal with " << cm.size() << " matches\n";
+    
+       smatch sm;    // same as  match_results<string::const_iterator> sm;
+       regex_match (s,sm,e);
+       cout << "string object with " << sm.size() << " matches\n";
+    
+       regex_match ( s.cbegin(), s.cend(), sm, e);
+       cout << "range with " << sm.size() << " matches\n";
+    
+      // using explicit flags:
+       regex_match ( cstr, cm, e,  regex_constants::match_default );
+    
+       cout << "the matches were: ";
+      for (unsigned i=0; i<cm.size(); ++i) {
+         cout << "[" << cm[i] << "] ";
+      }
+    
+       cout <<  endl;
+    
+      return 0;
+}
 
 int main()
 {
 	//tt("./a.cap");
-	const char * pattern = "\"toNum\":\"([0-9]+)\"";  
-	regx("./a.cap",pattern);
+	//const char * pattern = "\"toNum\":\"([0-9]+)\"";  
+	//regx("./a.cap",pattern);
+
+
+    cplusRegxMatch();
 	//writeOnly_file2("./2.txt");	
 }
