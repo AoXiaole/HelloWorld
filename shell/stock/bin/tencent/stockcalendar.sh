@@ -25,7 +25,7 @@ function getdaydata()
 	
 	url_value=${url_value##*=}
 	g_day=$(echo ${url_value} | sed 's/\[\([0-9]*\),.*/\1/')
-	if  [ ! "${g_day}"x = "${today_ymd}"x ] ;then
+	if  [ "${g_day}"x != "${today_ymd}"x ] ;then
         log WARNING "${stockcode} ${g_day} is not today" ${g_logfile_stock}
 		return 255
 	fi
@@ -50,6 +50,11 @@ if [ ${ret} -ne 0 ];then
 	exit 1
 fi
 
+sql_daylist=$(dbstock_cmd "select day from ${table_name};")
+
+if [[ "${sql_daylist}" =~ "${time_ymd}" ]];then
+	exit 1
+fi
 #组包插入数据库
 value=$(dbstock_insert ${table_name} "('${time_ymd}')")
 if [ $? -ne 0 ];then

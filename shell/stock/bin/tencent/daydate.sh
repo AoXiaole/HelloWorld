@@ -22,7 +22,7 @@ function getdaydata()
 
 	url_value=$(url_request "${url}")
 	if [ $? -ne 0 ];then
-		log ERROR "${url} error" ${g_logfile_stock}
+		log ERROR "${stockcode} ${url} error" ${g_logfile_stock}
 		return 255
 	fi
 	url_value=${url_value##*=}
@@ -30,6 +30,11 @@ function getdaydata()
 	if [ -z "${g_day}" ] ;then
         log ERROR "${stockcode} ${g_day} is not today" ${g_logfile_stock}
 		return 255
+	fi
+	if [ "${g_day}x" != "${today_ymd}x" ] ;then
+        #log ERROR "${stockcode} ${g_day} is not today " ${g_logfile_stock}
+		#return 255
+		:
 	fi
 	local totals=$(echo "${url_value}" | awk -F "|" '{print NF}')
 	
@@ -39,7 +44,7 @@ function getdaydata()
 		url=$(echo "${tmp_url}" | sed "s/\[times\]/$i/")
 		url_value=$(url_request "${url}")
 		if [ $? -ne 0 ];then
-			log ERROR "${url} error" ${g_logfile_stock}
+			log ERROR "${stockcode} ${url} error" ${g_logfile_stock}
 		fi
 		temp_list=($(echo "${url_value##*=}" | grep -o '".*"' | tr '"|' ' '))
 		for ((j=0;j<${#temp_list[*]};j++))
@@ -60,39 +65,42 @@ if [ $? -ne 0 ];then
 fi
 
 time_ymd=${g_day}
+
 table_name="day_${stockcode}_${time_ymd}"
 
-table_arrt="(no INT,time_hms TIME,price FLOAT,ffs FLOAT,vol INT,money BIGINT,b_s enum('B','S','M'))"
+table_arrt="(no INT primary key,time_hms TIME,price FLOAT,ffs FLOAT,vol INT,money BIGINT,b_s enum('B','S','M'))"
+
+dbstock_cmd "drop table ${table_name};" &>/dev/null
 
 value=$(dbstock_create_table ${table_name} "${table_arrt}")
 ret=$?
 
 if [ ${ret} -ne 0 ];then
-	log ERROR "ret = ${ret} ${value} $LINENO" ${g_logfile_stock}
+	log ERROR "${stockcode} ret = ${ret} ${value} $LINENO" ${g_logfile_stock}
 	exit 1
 fi
-
+num=${#data_list[*]}
 #组包插入数据库
-for((j=0;j<${#data_list[*]};j++))
+for((j=0;j<${num};j++))
 do
 	temp_list=(${data_list[$j]//// })
 	if [ ${#temp_list[*]} -ne 7 ];then
-		log ERROR "${data_list[$j]} error $LINENO" ${g_logfile_stock}
+		log ERROR "${stockcode} ${data_list[$j]} error $LINENO" ${g_logfile_stock}
 		continue
 	fi  
 	insert_cmd="${insert_cmd} (${temp_list[0]},'${temp_list[1]}',${temp_list[2]},${temp_list[3]},${temp_list[4]},${temp_list[5]},'${temp_list[6]}'),"
 	
-	if ((j%50==0)) || ((j+1==${#data_list[*]}));then
-		if [ $j -ne 0 ];then
-			insert_cmd="${insert_cmd%,*};"
-			db_value=$(dbstock_insert ${table_name} "${insert_cmd}")
-			if [ $? -ne 0 ];then
-				log ERROR "${insert_cmd} value=${db_value} $LINENO" ${g_logfile_stock}
-				break
-			fi
-		insert_cmd=""	
+	if (((j+1)%20==0)) || ((j+1==${num}));then
+		
+		insert_cmd="${insert_cmd%,*};"
+		db_value=$(dbstock_insert ${table_name} "${insert_cmd}")
+		if [ $? -ne 0 ];then
+			log ERROR "${stockcode} ${insert_cmd} value=${db_value} $LINENO" ${g_logfile_stock}
+			break
 		fi
-	fi	
+		insert_cmd=""	
+	fi
+	
 done
 exit 0
 
