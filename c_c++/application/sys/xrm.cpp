@@ -3,25 +3,10 @@
 #include<string>
 #include<string.h>
 
-#include<list>
-#include<set>
 #include <vector>
 #include <sys/stat.h>
 
 using namespace std;
-
-class CFileTime{
-public:
-	time_t fileTime;
-	string fileName;
-	
-
-	CFileTime(string f_name,time_t f_time):fileTime(f_time),fileName(f_name){}
-	bool operator<(CFileTime &file)const
-	{
-		return fileTime<=file.fileTime;
-	}
-};
 
 
 vector< string> split( string str, string pattern)
@@ -69,10 +54,8 @@ string getInput(int argc ,char *argv[])
 int main(int argc ,char *argv[])
 {
 	int ret = -1;
-	struct stat statInfo;
-	string str;  
-	set<CFileTime> cFileTimeSet;
 	
+	string str;  
 	str=getInput(argc,argv);
 	if(str.size() == 0)
 	{
@@ -82,33 +65,19 @@ int main(int argc ,char *argv[])
 	
 	if(fileNameVec.empty())
 	{
-		return 1;
+		return 0;
 	}
 
 	vector<string>::iterator fileNameVec_iter=fileNameVec.begin();
 	for(;fileNameVec_iter != fileNameVec.end();fileNameVec_iter++)
 	{
-		memset(&statInfo,0,sizeof(statInfo));
-		ret = stat((*fileNameVec_iter).c_str(),&statInfo);
-		if(ret == 0)
+		ret = remove(fileNameVec_iter->c_str());
+		if(ret != 0)
 		{
-			if(!cFileTimeSet.insert(CFileTime(*fileNameVec_iter,statInfo.st_mtime)).second)
-            {
-                cerr<<*fileNameVec_iter<<" insert error"<<endl;
-            }         
-        }
-		else
-		{
-			cerr<<*fileNameVec_iter<<" not found"<<endl;
-		}
+			perror("rm:");
+		}	
 	}
-    
 
-	set<CFileTime>::iterator cFileTimeSet_iter=cFileTimeSet.begin();
-	for(;cFileTimeSet_iter!=cFileTimeSet.end();cFileTimeSet_iter++)
-		cout<<(*cFileTimeSet_iter).fileName<<endl;
 	return 0;
-
-
 
 }

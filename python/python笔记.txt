@@ -1,0 +1,68 @@
+Python中的包
+
+包是一个分层次的文件目录结构，它定义了一个由模块及子包，和子包下的子包等组成的 Python 的应用环境。
+简单来说，包就是文件夹，但该文件夹下必须存在 __init__.py 文件, 该文件的内容可以为空。__int__.py用于标识当前文件夹是一个包。
+
+获取键盘输入input 与raw_input
+input([prompt]) 函数和 raw_input([prompt]) 函数基本类似，但是 input 可以接收一个Python表达式作为输入，并将运算结果返回。
+
+
+在python中继承中的一些特点：
+class SubClassName (ParentClass1[, ParentClass2, ...]):
+1：在继承中基类的构造（__init__()方法）不会被自动调用，它需要在其派生类的构造中亲自专门调用。
+2：在调用基类的方法时，需要加上基类的类名前缀，且需要带上self参数变量。区别于在类中调用普通函数时并不需要带上self参数
+3：Python总是首先查找对应类型的方法，如果它不能在派生类中找到对应的方法，它才开始到基类中逐个查找。（先在本类中查找调用的方法，找不到才去基类中找）。
+
+
+
+类属性与方法
+类的私有属性
+__private_attrs：两个下划线开头，声明该属性为私有，不能在类的外部被使用或直接访问。在类内部的方法中使用时 self.__private_attrs。
+类的方法
+在类的内部，使用 def 关键字可以为类定义一个方法，与一般函数定义不同，类方法必须包含参数 self,且为第一个参数
+类的私有方法
+__private_method：两个下划线开头，声明该方法为私有方法，不能在类地外部调用。在类的内部调用 self.__private_methods
+
+
+单下划线、双下划线、头尾双下划线说明：
+__foo__: 定义的是特列方法，类似 __init__() 之类的。
+_foo: 以单下划线开头的表示的是 protected 类型的变量，即保护类型只能允许其本身与子类进行访问，不能用于 from module import *
+__foo: 双下划线的表示的是私有类型(private)的变量, 只能是允许这个类本身进行访问了。
+
+
+数据库查询操作
+Python查询Mysql使用 fetchone() 方法获取单条数据, 使用fetchall() 方法获取多条数据。
+fetchone(): 该方法获取下一个查询结果集。结果集是一个对象
+fetchall():接收全部的返回结果行.
+rowcount: 这是一个只读属性，并返回执行execute()方法后影响的行数。
+
+
+Python Internet 模块
+以下列出了 Python 网络编程的一些重要模块：
+协议	功能用处	端口号	Python 模块
+HTTP	网页访问	80	httplib, urllib, xmlrpclib
+NNTP	阅读和张贴新闻文章，俗称为"帖子"	119	nntplib
+FTP	文件传输	20	ftplib, urllib
+SMTP	发送邮件	25	smtplib
+POP3	接收邮件	110	poplib
+IMAP4	获取邮件	143	imaplib
+Telnet	命令行	23	telnetlib
+Gopher	信息查找	70	gopherlib, urllib
+更多内容可以参阅官网的 Python Socket Library and Modules。
+
+Python线程
+thread.start_new_thread ( function, args[, kwargs] )
+
+
+
+python 的排列组合
+>>> import itertools
+
+>>> list(itertools.combinations('abc', 2))
+[('a', 'b'), ('a', 'c'), ('b', 'c')]
+>>> list(itertools.permutations('abc',2))
+[('a', 'b'), ('a', 'c'), ('b', 'a'), ('b', 'c'), ('c', 'a'), ('c', 'b')]
+>>> 
+
+
+

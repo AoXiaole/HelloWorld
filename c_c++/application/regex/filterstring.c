@@ -56,6 +56,8 @@ int fileregx(char *fileName,char *pattern)
     while(!myFile.eof())
     {
         getline(myFile,str,'\0');
+        if(str.size() == 0)
+            continue;
         filterString(&reg,str.c_str());
     }
     regfree(&reg);
@@ -107,7 +109,7 @@ int main(int argc ,char *argv[])
     {
         cinregx(pattern);
     }
-   
+    return 0;  
 }
 
 
