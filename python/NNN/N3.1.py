@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 from numpy import *
 import matplotlib
-matplotlib.use('wx')
+
 import matplotlib.pyplot as plt
 #
 X = array([[1,2, 3],
@@ -38,8 +38,8 @@ for _ in range(100):
 	for i in range(X.shape[0]):
 		cal(X[i],D[0][i])
 		O[0][i]=o
-		print W
-	print "======>",W
+		print (W)
+	print ("======>",W)
 	if(O == D).all():
 		print("finished")
 		break
