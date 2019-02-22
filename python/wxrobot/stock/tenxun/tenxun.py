@@ -38,14 +38,14 @@ def DEBUG(str):
     pass
 log = DEBUG
 
-def 腾讯_实时数据分段列表(code):
+def 腾讯_实时数据时间段列表(code):
 
     p_get=requests.get('http://stock.gtimg.cn/data/index.php?appn=detail&action=timeline&c={0}'.format(code))
     time_list = re.findall(r'[^"]*"([^"]*)"', p_get.text, re.S)[0].split('|')
     log(time_list)
     return time_list
 
-#腾讯实时数据是分段获取的，时间段的获取在函数 ‘腾讯_实时数据分段列表’；num 下标从 0 开始
+#腾讯实时数据是分段获取的，时间段的获取在函数 ‘腾讯_实时数据时间段列表’；num 下标从 0 开始
 #返回数据格式为[[0,],[1]]
 def 腾讯_第N段实时数据(code, num):
     data_list = []
@@ -58,7 +58,7 @@ def 腾讯_第N段实时数据(code, num):
 
 def 腾讯_获取当天实时数据(code):
     day_data=[]
-    time_list = 腾讯_实时数据分段列表(code)
+    time_list = 腾讯_实时数据时间段列表(code)
     num = len(time_list)
     log(num)
     for i in range(num):
@@ -133,6 +133,7 @@ def 腾讯_获取周线数据(week_start,week_end,code):
     log(week_list)
     return week_list
 
+# 返回 [sz000001,...]
 def 腾讯_获取A股股票代码(maxnum):
     p_get = requests.get('http://stock.gtimg.cn/data/index.php?appn=rank&t=ranka/chr&p=1&o=0&l={0}&v=list_data'.format(maxnum))
     # 执行表达式语句
