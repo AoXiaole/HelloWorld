@@ -1,7 +1,8 @@
 # encoding:utf-8
-import requests,json
+import requests,json,xlrd,xlwt
 from pyquery import PyQuery as pq
-import re
+import re,pprint,time,os
+from stock.tenxun.code_name import *
 
 # 时间轴
 # http://stock.gtimg.cn/data/index.php?appn=detail&action=timeline&c=sh600532
@@ -33,7 +34,10 @@ import re
 # 月K
 # http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?_var=kline_monthqfq&param=sz002848,month,,,320
 
-
+#获取基本实时数据信息
+#http://web.sqt.gtimg.cn/q=sz000002
+baseinf_day_dir = './data/stock/baseinfo_day'
+tenxun_dir = './stock/tenxun'
 def DEBUG(str):
     pass
 log = DEBUG
@@ -142,6 +146,171 @@ def 腾讯_获取A股股票代码(maxnum):
     log(code_list)
     return code_list
 
+
+def 腾讯_获取A股实时数据文件(filepath):
+    '''
+    获取A股所有股票的实时数据，返回一个execl文件
+    :param filepath:
+    :return:
+    '''
+    # 获取xls表格
+    p_get = requests.get('http://stock.gtimg.cn/data/get_hs_xls.php?id=ranka&type=1&metric=chr')
+
+    with open(filepath, "wb+") as f:
+        f.write(p_get.content)
+
+def 腾讯_获取A股实时数据():
+    '''
+    获取实时数据，返回一个数据字典
+
+    {'code1':{'名称':'','最新价':''...}
+     code2':{'名称':'','最新价':''...}
+    }
+    code 带前缀
+    :return:
+    '''
+    data_list = {}
+    name = []
+    # 获取xls表格
+    p_get = requests.get('http://stock.gtimg.cn/data/get_hs_xls.php?id=ranka&type=1&metric=chr')
+    if p_get.status_code != 200:
+        return None
+    workbook = xlrd.open_workbook(file_contents=p_get.content)
+
+    sheet1 = workbook.sheet_by_index(0)
+    name = sheet1.row_values(1)
+
+    for i in range(2, sheet1.nrows):
+        data = {}
+        rowdata = sheet1.row_values(i)
+        for n in range(1,len(rowdata)):
+            data[name[n]] = rowdata[n]
+        data_list[rowdata[0]] = data
+
+    # for k,v in data_list.items():
+    #     print(k,":",v)
+
+    return data_list
+
+基本信息名称列表=[(1,'名称'),(2,'代码'),(3,'当前价'),(4,'昨收'),(32,'涨幅'),(31,'涨价'),(43,'振幅'),(5,'今开'),
+          (33,'最高'),(34,'最低'),(36,'成交量(手)'),(37,'成交额(万)'),(44,'流通市值(亿)'),(45,'总市值(亿)'),(38,'换手率'),
+          (49,'量比'),(39,'T市盈率'),(53,'H市盈率(静)'),(52,'H市盈率(动)'),(46,'市净率'),(47,'涨停'),(48,'跌停')]
+def 腾讯_获取实时基本数据信息(code):
+    '''http://web.sqt.gtimg.cn/q=sz000002
+    返回 {'当前价':'','今开',''...}
+
+     成交量 单位为手
+     成交额单位为 万
+     市值单位为 亿
+    '''
+    data_list = {}
+    p_get = requests.get('http://web.sqt.gtimg.cn/q={0}'.format(code))
+    if p_get.status_code != 200:
+        return None
+    templist = re.search(r'="(.*)"', p_get.text, re.S).group(1).split("~")
+
+    for item in 基本信息名称列表:
+        data_list[item[1]] = templist[item[0]]
+    log(data_list)
+    return data_list
+
+def 腾讯_更新股票基本数据文件():
+    '''
+    将当前的股票的基本信息数据写入execl文件
+    文件格式 年-月-日.execl
+    :return:
+    '''
+
+    # 将上证的数据，全部拿下，在写入文件
+    big_data_array = []
+    code_list = 腾讯_获取A股股票代码(8000)
+
+    ok_code = []
+    haveBreak = True # 给个初始值
+    # 循环获取，直到所有数据都拿下
+    while haveBreak:
+        haveBreak = False
+        for code in code_list:
+            if code in ok_code:
+                continue
+            temp = 腾讯_获取实时基本数据信息(code)
+            if temp :
+                big_data_array.append(temp)
+                ok_code.append(code)
+                log('获取成功:{0}'.format(code))
+            else :
+                haveBreak = True
+                log('获取失败:{0}'.format(code))
+
+    writebook = xlwt.Workbook()
+    sheet = writebook.add_sheet('test')
+    line = 1
+    nums = len(基本信息名称列表)
+    for i in range(nums):
+        sheet.write(0, i, 基本信息名称列表[i][1])
+
+    for code_data in big_data_array:
+        for i in range(nums):
+            sheet.write(line, i, code_data.get(基本信息名称列表[i][1],''))
+        line = line + 1
+
+    day = time.strftime('%Y-%m-%d',time.localtime(time.time()))
+    filename = os.path.join(baseinf_day_dir, "{0}.xlsx".format(day))
+    # 文件存在，将文件删除
+    if os.path.isfile(filename):
+        os.remove(filename)
+
+    writebook.save(filename)
+
+    return True
+
+
+
+
+def 腾讯_获取股票基本数据():
+    '''
+    获取所有股票当前基本信息，从文件获取
+    :return:
+    '''
+
+
+def 腾讯_获取股票名称(code):
+    p_get = requests.get('http://web.sqt.gtimg.cn/q={0}'.format(code))
+    if p_get.status_code != 200:
+        return None
+
+    templist = re.search(r'="(.*)"', p_get.text, re.S).group(1).split("~")
+    print(p_get.text)
+    if len(templist) > 1:
+        return templist[1]
+    else:
+        return None
+
+def 腾讯_更新股票列表():
+
+    code_name = {}
+
+    code_list = 腾讯_获取A股股票代码(8000)
+    haveBreak = True  # 给个初始值
+    # 循环获取，直到所有数据都拿下
+    while haveBreak:
+        haveBreak = False
+        for code in code_list:
+            if code in code_name.keys():
+                continue
+            name = 腾讯_获取股票名称(code)
+            if name:
+                code_name[code] = name
+                log('获取成功:{0}'.format(code))
+            else:
+                haveBreak = True
+                log('获取失败:{0}'.format(code))
+
+        with open(os.path.join(tenxun_dir,'code_name.py'),'w',encoding='utf-8') as f:
+            f.write('# encoding:utf-8\n')
+            f.write("腾讯_代码名称={0}".format(json.dumps(code_name)))
+
+
 if __name__ == '__main__':
     log = print
 
@@ -158,6 +327,6 @@ if __name__ == '__main__':
     # print(day_data)
     # print(week_data)
     # print(当天数据)
-
-    code_list = 腾讯_获取A股股票代码(8000)
-    log("A股一共{0}只股票".format(len(code_list)))
+    baseinf_day_dir = './test_baseinfo_day'
+    tenxun_dir = './'
+    print(len(腾讯_代码名称.keys()))

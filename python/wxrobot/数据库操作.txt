@@ -1,0 +1,19 @@
+CREATE TABLE `a股日数据库`.`a股日数据_20190222` (
+  `代码` VARCHAR(6) NOT NULL COMMENT '不带前缀',
+  `名称` VARCHAR(20) NULL,
+  `最新价` FLOAT NULL DEFAULT 0.0,
+  `涨跌幅` FLOAT NULL DEFAULT 0.0,
+  `涨跌额` FLOAT NULL DEFAULT 0.0,
+  `成交量` INT(8) NULL DEFAULT 0,
+  `成交额` FLOAT NULL DEFAULT 0.0,
+  `今开` FLOAT NULL DEFAULT 0.0,
+  `昨收` FLOAT NULL DEFAULT 0.0,
+  `最高` FLOAT NULL DEFAULT 0.0,
+  `最低` FLOAT NULL DEFAULT 0.0,
+  PRIMARY KEY (`代码`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
+
+
+
+INSERT INTO `a股日数据库`.`a股日数据_20190222` (`代码`, `名称`, `最新价`, `涨跌幅`, `涨跌额`, `成交量`, `成交额`, `今开`, `昨收`, `最高`, `最低`) VALUES ('600459', '贵研铂业', '0', '0', '0', '0', '0', '0', '14.49', '0', '0');

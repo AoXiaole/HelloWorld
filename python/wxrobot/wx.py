@@ -21,6 +21,7 @@ def simple_reply(msg):
         msg.user.send("文件上传中...")
         msg.user.send('@fil@{0}'.format(file))
         return '文件下载完成'
-
+    else:
+        return '你好'
 
 itchat.run()

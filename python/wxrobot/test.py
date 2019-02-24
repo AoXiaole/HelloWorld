@@ -80,6 +80,8 @@ if __name__ == '__main__':
     for key,value in data_map.items():
 
         sheet.write(line, 0, key)
+        head = 'sh' if key[0] == '6' else 'sz'
+        sheet.write(line+1, 0, 腾讯_获取股票名称(head + key))
 
         col = 1
         for v in value[0]:
@@ -91,5 +93,5 @@ if __name__ == '__main__':
             col = col + 1
         line = line + 2
 
-    writebook.save('answer.xls')
+    writebook.save('answer1.xls')
 
