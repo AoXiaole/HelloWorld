@@ -6,7 +6,7 @@ from stock.tenxun.tenxun import *
 
 
 def create_table_by_execl(db, execl_file):
-    day_str = time.strftime('%Y-%m-%d', time.localtime(time.time()))
+    day_str = time.strftime('%Y_%m_%d', time.localtime(time.time()))
     table_name = 't_' + day_str
     cursor = db.cursor()
     workbook = xlrd.open_workbook(execl_file)
@@ -69,7 +69,7 @@ def update_code_name_table(db):
     add_code_set = new_code_set - sql_code_set
 
     # 获取数据库中需要更新的代码
-    sql = '''SELECT code FROM t_code_name where need_update = 1;'''
+    sql = '''SELECT code FROM `dbstock`.`t_code_name` where need_update = 1;'''
     cursor.execute(sql)
     results = cursor.fetchall()
     update_code_set = {i[0] for i in results}
@@ -79,7 +79,7 @@ def update_code_name_table(db):
     new_code_name = 腾讯_获取股票名称_EX(code_set)
 
 
-    insert_head = 'INSERT INTO `t_code_name` (`code`, `name`,`need_update`) VALUES'
+    insert_head = 'INSERT INTO `dbstock`.`t_code_name` (`code`, `name`,`need_update`) VALUES'
     insert_list = ""
 
     # 插入新的
@@ -97,7 +97,7 @@ def update_code_name_table(db):
         if new_code_name[code][0] == 'D' or new_code_name[code][0] == 'S' or new_code_name[code][0] == 'N':
             continue
 
-        sql = '''UPDATE `t_code_name` SET `name`='{0}', `need_update`='0' WHERE `code`='{1}';'''.format(new_code_name[code],code)
+        sql = '''UPDATE `dbstock`.`t_code_name` SET `name`='{0}', `need_update`='0' WHERE `code`='{1}';'''.format(new_code_name[code],code)
         cursor.execute(sql)
 
     db.commit()
@@ -105,42 +105,109 @@ def update_code_name_table(db):
 
 
 def update_all_code_name_table(db):
+
+    code_list = 腾讯_获取A股股票代码(8000)
+    code_name = 腾讯_获取股票名称_EX(code_list)
     cursor = db.cursor()
-    cursor.execute("DROP TABLE IF EXISTS `t_code_name`")
+    cursor.execute("DROP TABLE IF EXISTS `dbstock`.`t_code_name`")
 
     # 使用预处理语句创建表
-    sql = """CREATE TABLE `t_code_name` ( 
-            `code` CHAR(6) NOT NULL,
-            `name` VARCHAR(20) NOT NULL,
-            `need_update` TINYINT NOT NULL DEFAULT 0,
-            PRIMARY KEY (`code`))
-            ENGINE = InnoDB
-            DEFAULT CHARACTER SET = utf8;"""
+    sql = """CREATE TABLE `dbstock`.`t_code_name` ( 
+                `code` CHAR(6) NOT NULL,
+                `name` VARCHAR(20) NOT NULL,
+                `need_update` TINYINT NOT NULL DEFAULT 0,
+                PRIMARY KEY (`code`))
+                ENGINE = InnoDB
+                DEFAULT CHARACTER SET = utf8;"""
 
     cursor.execute(sql)
 
     db.commit()
 
-    insert_head = 'INSERT INTO `t_code_name` (`code`, `name`,`need_update`) VALUES'
+    insert_head = 'INSERT INTO `dbstock`.`t_code_name` (`code`, `name`,`need_update`) VALUES'
     insert_list = ""
-    code_list = 腾讯_更新股票列表(8000)
-
-    for k ,v in code_list.items():
+    for k ,v in code_name.items():
         insert_list += '''('{0}','{1}',{2}),'''.format(
-            k[2:] , v ,  1 if v[0] == 'D' or v[0] == 'S' or v[0] == 'N' else 0
+            k, v,  1 if v[0] == 'D' or v[0] == 'S' or v[0] == 'N' else 0
         )
 
     sql = insert_head + insert_list[:-1]
     cursor.execute(sql)
     db.commit()
 
-# 打开数据库连接
-db = pymysql.connect("localhost", "root", "000000", "dbstock")
+def get_v(value):
+    return value if value and value != '--' else "-999999.99"
 
-#create_table_by_execl(db, '2019-02-25.xls')
 
-#update_all_code_name_table(db)
-update_code_name_table(db)
-# 关闭数据库连接
-db.close()
+def save_AG_day_data():
+    table_name = 't_ag_day_{0}'.format(time.strftime('%Y_%m_%d', time.localtime(time.time())))
+    code_list = 腾讯_获取A股股票代码(8000)
+    ag_day_data = 腾讯_获取多股实时基本数据信息(code_list)
+    # 测试
+    # with open(os.path.join(tenxun_dir,'code_name.py'),'w',encoding='utf-8') as f:
+    #     f.write('# encoding:utf-8\n')
+    #     f.write("腾讯={0}".format(json.dumps(ag_day_data)))
+
+    cursor = db.cursor()
+    cursor.execute("DROP TABLE IF EXISTS `dbstock`.`{0}`".format(table_name))
+
+    # 使用预处理语句创建表
+    sql = """CREATE TABLE `dbstock`.`{0}` (
+    `代码` CHAR(6) NOT NULL,
+    `名称` CHAR(6) NOT NULL,   
+    `当前价` FLOAT NOT NULL,
+    `涨幅` FLOAT NOT NULL,
+    `涨价` FLOAT NOT NULL,
+    `昨收` FLOAT NOT NULL,
+    `今开` FLOAT NOT NULL,
+    `最高` FLOAT NOT NULL,
+    `最低` FLOAT NOT NULL,
+    `振幅` FLOAT NOT NULL,
+    `成交量手` FLOAT NOT NULL COMMENT '单位为手',
+    `成交额万` FLOAT NOT NULL COMMENT '单位为万',
+    `流通市值亿` FLOAT NOT NULL COMMENT '单位为亿',
+    `总市值亿` FLOAT NOT NULL COMMENT '单位为亿',
+    `换手率` FLOAT NOT NULL,
+    `量比` FLOAT NOT NULL,
+    `T市盈率` FLOAT NOT NULL,
+    `H市盈率静` FLOAT NOT NULL,
+    `H市盈率动` FLOAT NOT NULL,
+    `市净率` FLOAT NOT NULL,
+    `涨停` FLOAT NOT NULL,
+    `跌停` FLOAT NOT NULL,
+    PRIMARY KEY (`代码`))
+    ENGINE = InnoDB
+    DEFAULT CHARACTER SET = utf8;""".format(table_name)
+
+    cursor.execute(sql)
+    db.commit()
+
+    insert_head = 'INSERT INTO `dbstock`.`{0}` (`代码`, `名称`,`当前价`,`涨幅`,`涨价`, \
+    `昨收`,`今开`,`最高`,`最低`,`振幅`,`成交量手`,`成交额万`,`流通市值亿`,`总市值亿`,`换手率`, \
+    `量比`, `T市盈率`,`H市盈率静`,`H市盈率动`,`市净率`,`涨停`,`跌停`) VALUES'.format(table_name)
+    insert_list = ""
+
+    for k ,v in ag_day_data.items():
+        insert_list += '''('{0}','{1}',{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12},{13},{14},{15},{16},{17},{18},{19},{20},{21}),'''.format(
+            k, get_v(v['名称']), get_v(v['当前价']),get_v(v['涨幅']),get_v(v['涨价']),get_v(v['昨收']),get_v(v['今开']),get_v(v['最高']),get_v(v['最低']),get_v(v['振幅']),
+            get_v(v['成交量手']),get_v(v['成交额万']),get_v(v['流通市值亿']),get_v(v['总市值亿']),get_v(v['换手率']),get_v(v['量比']),get_v(v['T市盈率']),
+            get_v(v['H市盈率静']),get_v(v['H市盈率动']),get_v(v['市净率']),get_v(v['涨停']),get_v(v['跌停'])
+        )
+
+    sql = insert_head + insert_list[:-1]
+    cursor.execute(sql)
+    db.commit()
+
+if __name__ == '__main__':
+    # 打开数据库连接
+    db = pymysql.connect("localhost", "root", "123456",'dbstock')
+
+    #create_table_by_execl(db, '2019-02-25.xls')
+
+    #update_all_code_name_table(db)
+    # update_all_code_name_table(db)
+    save_AG_day_data()
+    #腾讯_获取多股实时基本数据信息(['600998'])
+    # 关闭数据库连接
+    db.close()
 
