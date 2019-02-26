@@ -42,9 +42,13 @@ def DEBUG(str):
     pass
 log = DEBUG
 
+def code_prefix(code):
+    return 'sh' if code[0] == '6' else 'sz'
+
+
 def 腾讯_实时数据时间段列表(code):
 
-    p_get=requests.get('http://stock.gtimg.cn/data/index.php?appn=detail&action=timeline&c={0}'.format(code))
+    p_get=requests.get('http://stock.gtimg.cn/data/index.php?appn=detail&action=timeline&c={0}'.format(code_prefix(code) + code))
     time_list = re.findall(r'[^"]*"([^"]*)"', p_get.text, re.S)[0].split('|')
     log(time_list)
     return time_list
@@ -53,7 +57,7 @@ def 腾讯_实时数据时间段列表(code):
 #返回数据格式为[[0,],[1]]
 def 腾讯_第N段实时数据(code, num):
     data_list = []
-    p_get = requests.get('http://stock.gtimg.cn/data/index.php?appn=detail&action=data&c={0}&p={1}'.format(code, num))
+    p_get = requests.get('http://stock.gtimg.cn/data/index.php?appn=detail&action=data&c={0}&p={1}'.format(code_prefix(code) + code, num))
     string = re.findall(r'[^"]*"([^"]*)"', p_get.text, re.S)[0].split('|')
     #print(data_list)
     for i in range(len(string)):
@@ -71,7 +75,7 @@ def 腾讯_获取当天实时数据(code):
     return day_data
 
 def 腾讯_获取当前实时数据(code):
-    p_get = requests.get('http://web.sqt.gtimg.cn/q={0}'.format(code))
+    p_get = requests.get('http://web.sqt.gtimg.cn/q={0}'.format(code_prefix(code) + code))
     string = re.findall(r'[^"]*"([^"]*)"', p_get.text, re.S)[0].split('~')
     log(string)
     return string
@@ -111,7 +115,7 @@ def 腾讯_获取一年的日线数据(year, code):
 def 腾讯_获取日线数据(day_start,day_end,code):
     p_get = requests.get(
         'http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?_var=kline_dayqfq&param={0},day,{1},{2},320,qfq'.format(
-            code, day_start, day_end))
+            code_prefix(code) + code, day_start, day_end))
     # 执行表达式语句
     exec(p_get.text)
     # 计算表达式的值
@@ -128,7 +132,7 @@ def 腾讯_获取一年的周线数据(year, code):
 def 腾讯_获取周线数据(week_start,week_end,code):
     p_get = requests.get(
         'http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?_var=kline_weekqfq&param={0},week,{1},{2},320,qfq'.format(
-            code, week_start, week_end))
+            code_prefix(code) + code, week_start, week_end))
     # 执行表达式语句
     exec(p_get.text)
     # 计算表达式的值
@@ -137,14 +141,15 @@ def 腾讯_获取周线数据(week_start,week_end,code):
     log(week_list)
     return week_list
 
-# 返回 [sz000001,...]
+# 返回 [000001,...]
 def 腾讯_获取A股股票代码(maxnum):
     p_get = requests.get('http://stock.gtimg.cn/data/index.php?appn=rank&t=ranka/chr&p=1&o=0&l={0}&v=list_data'.format(maxnum))
     # 执行表达式语句
     log( p_get.text)
     code_list = re.findall(r'data:\'([^\']*)\'', p_get.text, re.S)[0].split(",")
     log(code_list)
-    return code_list
+    data_list = [i[2:] for i in code_list]
+    return data_list
 
 
 def 腾讯_获取A股实时数据文件(filepath):
@@ -204,7 +209,7 @@ def 腾讯_获取实时基本数据信息(code):
      市值单位为 亿
     '''
     data_list = {}
-    p_get = requests.get('http://web.sqt.gtimg.cn/q={0}'.format(code))
+    p_get = requests.get('http://web.sqt.gtimg.cn/q={0}'.format(code_prefix(code) + code))
     if p_get.status_code != 200:
         return None
     templist = re.search(r'="(.*)"', p_get.text, re.S).group(1).split("~")
@@ -275,7 +280,7 @@ def 腾讯_获取股票基本数据():
 
 
 def 腾讯_获取股票名称(code):
-    p_get = requests.get('http://web.sqt.gtimg.cn/q={0}'.format(code))
+    p_get = requests.get('http://web.sqt.gtimg.cn/q={0}'.format(code_prefix(code) + code))
     if p_get.status_code != 200:
         return None
 
@@ -286,11 +291,36 @@ def 腾讯_获取股票名称(code):
     else:
         return None
 
-def 腾讯_更新股票列表():
+
+def 腾讯_获取股票名称_EX(code_list):
+    '''
+    code_list 是不带前缀的 []
+    返回 {codei:namei}
+    '''
+    code_name = {}
+
+    haveBreak = True  # 给个初始值
+    # 循环获取，直到所有数据都拿下
+    while haveBreak:
+        haveBreak = False
+        for code in code_list:
+            if code in code_name.keys():
+                continue
+            name = 腾讯_获取股票名称(code)
+            if name:
+                code_name[code] = name
+                log('获取成功:{0}'.format(code))
+            else:
+                haveBreak = True
+                log('获取失败:{0}'.format(code))
+    return code_name
+
+
+def 腾讯_更新股票列表(total):
 
     code_name = {}
 
-    code_list = 腾讯_获取A股股票代码(8000)
+    code_list = 腾讯_获取A股股票代码(total)
     haveBreak = True  # 给个初始值
     # 循环获取，直到所有数据都拿下
     while haveBreak:
@@ -306,9 +336,10 @@ def 腾讯_更新股票列表():
                 haveBreak = True
                 log('获取失败:{0}'.format(code))
 
-        with open(os.path.join(tenxun_dir,'code_name.py'),'w',encoding='utf-8') as f:
-            f.write('# encoding:utf-8\n')
-            f.write("腾讯_代码名称={0}".format(json.dumps(code_name)))
+    with open(os.path.join(tenxun_dir,'code_name.py'),'w',encoding='utf-8') as f:
+        f.write('# encoding:utf-8\n')
+        f.write("腾讯_代码名称={0}".format(json.dumps(code_name)))
+    return code_name
 
 
 if __name__ == '__main__':
@@ -329,4 +360,4 @@ if __name__ == '__main__':
     # print(当天数据)
     baseinf_day_dir = './test_baseinfo_day'
     tenxun_dir = './'
-    print(len(腾讯_代码名称.keys()))
+    腾讯_更新股票列表()
