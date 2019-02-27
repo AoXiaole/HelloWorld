@@ -70,15 +70,40 @@ def 腾讯_第N段交易数据(code, num):
         data_list.append(tuple(string[i].split('/')))
     return data_list
 
-def 腾讯_获取当天交易数据(code):
+def 腾讯_个股当天交易数据(code):
+    '''
+
+    :param code: 股票代码不带前缀
+    :return: [('0','09:25:03','成交价'，'价格变动'，’成交量‘,'成交额',’买卖方向‘),('1',....)]
+    '''
     day_data=[]
     time_list = 腾讯_实时数据时间段列表(code)
     num = len(time_list)
     log(num)
-    for i in range(num):
-        day_data += 腾讯_第N段交易数据(code, i)
-    log(day_data)
-    return day_data
+
+    not_ok_num = {i for i in range(num)}
+    try_times_max = 5
+    all_success = False
+    while not all_success and try_times_max > 0:
+        all_success = True
+        tmp_set = {i for i in not_ok_num}
+        for i in tmp_set:
+            time.sleep(0.1)
+            try:
+                day_data += 腾讯_第N段交易数据(code, i)
+                not_ok_num -= {i}
+            except Exception:
+                print("failed {code}:{i}".format(code, i))
+                all_success = False
+        try_times_max = try_times_max -1
+
+    if all_success:
+        log(day_data)
+        return day_data
+    else:
+        return None
+
+
 
 def 腾讯_获取当前实时数据(code):
     p_get = tencent_request_get('http://web.sqt.gtimg.cn/q={0}'.format(code_prefix(code) + code))
@@ -151,7 +176,7 @@ def 腾讯_获取周线数据(week_start,week_end,code):
 
 # 返回 [000001,...]
 def 腾讯_获取A股股票代码(maxnum):
-    p_get = requests.get('http://stock.gtimg.cn/data/index.php?appn=rank&t=ranka/chr&p=1&o=0&l={0}&v=list_data'.format(maxnum))
+    p_get = tencent_request_get('http://stock.gtimg.cn/data/index.php?appn=rank&t=ranka/chr&p=1&o=0&l={0}&v=list_data'.format(maxnum))
     # 执行表达式语句
     log( p_get.text)
     code_list = re.findall(r'data:\'([^\']*)\'', p_get.text, re.S)[0].split(",")
@@ -167,7 +192,7 @@ def 腾讯_获取A股实时数据文件(filepath):
     :return:
     '''
     # 获取xls表格
-    p_get = requests.get('http://stock.gtimg.cn/data/get_hs_xls.php?id=ranka&type=1&metric=chr')
+    p_get = tencent_request_get('http://stock.gtimg.cn/data/get_hs_xls.php?id=ranka&type=1&metric=chr')
 
     with open(filepath, "wb+") as f:
         f.write(p_get.content)
@@ -185,9 +210,8 @@ def 腾讯_获取A股实时数据():
     data_list = {}
     name = []
     # 获取xls表格
-    p_get = requests.get('http://stock.gtimg.cn/data/get_hs_xls.php?id=ranka&type=1&metric=chr')
-    if p_get.status_code != 200:
-        return None
+    p_get = tencent_request_get('http://stock.gtimg.cn/data/get_hs_xls.php?id=ranka&type=1&metric=chr')
+
     workbook = xlrd.open_workbook(file_contents=p_get.content)
 
     sheet1 = workbook.sheet_by_index(0)
@@ -219,9 +243,7 @@ def 腾讯_获取个股实时基本数据信息(code):
     '''
     data_list = {}
     try:
-        p_get = requests.get('http://web.sqt.gtimg.cn/q={0}'.format(code_prefix(code) + code))
-        if p_get.status_code != 200:
-            return None
+        p_get = tencent_request_get('http://web.sqt.gtimg.cn/q={0}'.format(code_prefix(code) + code))
     except Exception :
         return None
 
@@ -321,9 +343,7 @@ def 腾讯_获取股票基本数据():
 
 def 腾讯_获取股票名称(code):
     try:
-        p_get = requests.get('http://web.sqt.gtimg.cn/q={0}'.format(code_prefix(code) + code))
-        if p_get.status_code != 200:
-            return None
+        p_get = tencent_request_get('http://web.sqt.gtimg.cn/q={0}'.format(code_prefix(code) + code))
     except Exception as err:
         return None
 
@@ -401,6 +421,6 @@ if __name__ == '__main__':
     # print(day_data)
     # print(week_data)
     # print(当天数据)
-    baseinf_day_dir = './test_baseinfo_day'
-    tenxun_dir = './'
-    腾讯_获取当天交易数据('000001')
+    # baseinf_day_dir = './test_baseinfo_day'
+    # tenxun_dir = './'
+    t = 腾讯_个股当天交易数据('000001')

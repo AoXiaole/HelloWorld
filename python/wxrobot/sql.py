@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 # encoding:utf-8
-
+from multiprocessing import Pool
 import pymysql,time,xlrd
 from stock.tenxun.tenxun import *
+from mycommon.common import *
 
 
 def create_table_by_execl(db, execl_file):
@@ -139,7 +140,7 @@ def get_v(value):
     return value if value and value != '--' else "-999999.99"
 
 
-def save_AG_day_data():
+def save_AG_day_data(db):
     table_name = 't_ag_day_{0}'.format(time.strftime('%Y_%m_%d', time.localtime(time.time())))
     code_list = 腾讯_获取A股股票代码(8000)
     ag_day_data = 腾讯_获取多股实时基本数据信息(code_list)
@@ -198,16 +199,86 @@ def save_AG_day_data():
     cursor.execute(sql)
     db.commit()
 
+
+def save_one_stock_exchange_data(db, code):
+
+    exchange_data = 腾讯_个股当天交易数据(code)
+    if not exchange_data:
+        return None
+
+    table_name = 't_day_{0}_exchange_{1}'.format(code,time.strftime('%Y_%m_%d', time.localtime(time.time())))
+    cursor = db.cursor()
+    cursor.execute("DROP TABLE IF EXISTS `dbexchange`.`{0}`".format(table_name))
+
+    # 使用预处理语句创建表
+    sql = """CREATE TABLE `dbexchange`.`{0}` (
+        `id` INT auto_increment NOT NULL,
+        `时间` TIME NOT NULL,
+        `成交价` FLOAT NOT NULL, 
+        `价格变动` FLOAT NOT NULL, 
+        `成交量手` FLOAT NOT NULL,
+        `成交额元` FLOAT NOT NULL,
+        `买卖方向` ENUM('B','S','M') DEFAULT 'M' NOT NULL,
+        PRIMARY KEY (`id`))
+        AUTO_INCREMENT = 0
+        ENGINE = InnoDB
+        DEFAULT CHARACTER SET = utf8;""".format(table_name)
+
+    cursor.execute(sql)
+    db.commit()
+
+    insert_head = 'INSERT INTO `dbexchange`.`{0}` (`时间`, `成交价`,`价格变动`,`成交量手`,`成交额元`, `买卖方向`) VALUES'.format(table_name)
+    insert_list = ""
+
+    for i in exchange_data:
+        insert_list += '''('{0}',{1},{2},{3},{4},'{5}'),'''.format(i[1],i[2],i[3],i[4],i[5],i[6])
+
+    sql = insert_head + insert_list[:-1]
+    cursor.execute(sql)
+    db.commit()
+    return True
+
+
+def save_exchange_data(code_list):
+    #code_list = 腾讯_获取A股股票代码(8000)
+    db = pymysql.connect("localhost", "root", "000000")
+    for i in code_list:
+        t = save_one_stock_exchange_data(db, i)
+        if not t:
+            print("get code : {0} is failed".format(i))
+        else:
+            print("get code : {0} is success".format(i))
+    db.close()
+
+def multiprocess_save_exchange():
+    '''
+    开十个进程处理
+    :return:
+    '''
+    p = Pool()
+    code_list = 腾讯_获取A股股票代码(1000)
+
+    code_list = list_nrow(code_list, 10)
+    for i in code_list:
+        print(i)
+        p.apply_async(save_exchange_data, args = (i,))
+
+    p.close()
+    p.join()
+    print('All subprocesses done.')
+
 if __name__ == '__main__':
     # 打开数据库连接
-    db = pymysql.connect("localhost", "root", "123456",'dbstock')
-
+    #db = pymysql.connect("localhost", "root", "000000")
+    #log = print
     #create_table_by_execl(db, '2019-02-25.xls')
 
     #update_all_code_name_table(db)
     # update_all_code_name_table(db)
-    save_AG_day_data()
+    #save_one_stock_exchange_data(db, '002678')
+
     #腾讯_获取多股实时基本数据信息(['600998'])
     # 关闭数据库连接
-    db.close()
+    #db.close()
 
+    multiprocess_save_exchange()
