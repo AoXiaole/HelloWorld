@@ -1,4 +1,4 @@
-CREATE TABLE `a股日数据库`.`a股日数据_20190222` (
+﻿CREATE TABLE `a股日数据库`.`a股日数据_20190222` (
   `代码` VARCHAR(6) NOT NULL COMMENT '不带前缀',
   `名称` VARCHAR(20) NULL,
   `最新价` FLOAT NULL DEFAULT 0.0,
@@ -17,3 +17,46 @@ DEFAULT CHARACTER SET = utf8;
 
 
 INSERT INTO `a股日数据库`.`a股日数据_20190222` (`代码`, `名称`, `最新价`, `涨跌幅`, `涨跌额`, `成交量`, `成交额`, `今开`, `昨收`, `最高`, `最低`) VALUES ('600459', '贵研铂业', '0', '0', '0', '0', '0', '0', '14.49', '0', '0');
+
+
+
+显示数据库information_schema 中的所有表
+show tables in information_schema;
+
+
+统计数据库中表的个数
+SELECT COUNT( * ) FROM information_schema.tables WHERE TABLE_SCHEMA = 'dbexchange';
+
+获取数据库中'dbexchange'  表名为 %_2019_02_27 的所有表
+select TABLE_NAME from information_schema.tables where TABLE_SCHEMA = 'dbexchange' and TABLE_NAME like '%_2019_02_27';
+
+
+
+获取t_day_000004_exchange_2019_02_27 四个表中 买，卖，中性，的成交额，然后在拼接到一起
+select '000004' as code , sum(成交额元) as exchange, 买卖方向 as d from t_day_000004_exchange_2019_02_27 group by d union 
+
+select '000016' as code , sum(成交额元) as exchange, 买卖方向 as d from t_day_000016_exchange_2019_02_27 group by d union
+
+select '000037' as code , sum(成交额元) as exchange, 买卖方向 as d from t_day_000037_exchange_2019_02_27 group by d union
+
+select '000008' as code , sum(成交额元) as exchange, 买卖方向 as d from t_day_000008_exchange_2019_02_27 group by d;
+
+
+将表中的买卖方向，换成中文显示
+select '000004' as code , 成交额元,
+
+case
+	
+  when 买卖方向 = 'B' then '买'
+    
+  when 买卖方向 = 's' then '卖'
+    
+  else '中性'
+
+end as BS
+
+from dbexchange.t_day_000004_exchange_2019_02_27;
+
+
+
+select * from dbexchange.t_day_000008_exchange_2019_02_27 where 时间  between '09:30:30' and '13:30:00';
